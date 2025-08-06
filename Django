@@ -1,0 +1,112 @@
+	• 在Django中存在这样的对应关系和注意事项
+		- 首先我们需要创建一个app的文件夹，名字可以起别的，也是我们后续操作的关键
+		- 然后要注册这个app文件夹，在setting文件里面的 INSTALLED_APPS 下面添加一串数据，但是使用PyCharm自带的app（应用）创建的话就不需要手动添加，他会帮咱们搞好。PyCharm万岁
+		- 注册号APP后我们就需要urls文件，这里会有以下代码，意思就是当用户访问index这个url时就会执行后面的函数，然后这个函数我们就因该写在views里面
+			urlpatterns = [
+			    #这里就是URL和视图函数的对应关系
+			    # path('admin/', admin.site.urls),
+			    #这里就是说当用户访问index这个url，那么他就会去views这个文件里面找index函数
+			    # www.xxx.com/index/-->执行这后面的函数，但是函数应该写在views里面
+			    path('index/', views.index),
+			]
+		- 这里就需要在views这个文件里面写入对应的函数即可，另外需要在urls文件里面导入（from app01 import views）views文件，同样的，PyCharm会帮咱们搞定。
+		- 想要Django返回具体的界面的话就需要，自己在app的文件下面创建一个templates的文件夹，views里面的返回函数也要改为 return render（request，“HTML文件名称”）即可
+		- 对于html文件里面要用到的，css，js，插件，图片等我们统一称为静态文件，必须在app目录里面创建一个static目录然后扔进去，对于static目录里面，一般也会创建css，img，js，plugins这几个文件夹目录
+		- 对于在Django中要为HTML文件引入是需要特殊操作的，如下所示，在html文件的最上面添加 {% load static %} 注意橙色高亮部分
+			{% load static %}
+			<!DOCTYPE html>
+			<html lang="en">
+			<head>
+			    <meta charset="UTF-8">
+			    <title>Title</title>
+			    <link rel="stylesheet" href="{% static 'plugins/bootstrap-3.4.1-dist/css/bootstrap.min.css' %}">
+			</head>
+			<body>
+			<h1>欢迎访问用户列表区域，希望你今天过得愉快</h1>
+			<h2>测试文本展示区</h2>
+			<script src="{%static 'JS/jquery-3.7.1.min.js' %}"></script>
+			</body>
+			</html>
+	• Django内部操作
+		- 在Django中也可以通过form表单获取里面的数据，要在在form返回了数据给一个视图函数后views里面，但是Django增加了一个校验，防止恶意访问，所以需要在表单里面添加 {% csrf_token %} 
+		- 通过 username = request.POST.get("user") 的方式，获取其中输入的值，get内部的值是HTML标签里面name的属性。这里的request不是爬虫里面的那个，而是
+		Django自带的那个，别搞错了
+		- 通过 request.method 判断请求的方式，请求页面一般是get；返回数据一般是post
+	• ORM:
+		- 对于orm操作数据库，首先我们需要修改setting里面的配置文件，Django默认的是自带的数据库，我们需要修改成自己的，如下所示
+			DATABASES = {
+			    'default': {
+			        'ENGINE': 'django.db.backends.mysql',
+			        'NAME': 'orm_tect',
+			        'USER': 'root',
+			        'PASSWORD': '123456',
+			        'HOST': '127.0.0.1',
+			        'PORT': 3306
+			    }
+			}
+		- 然后操作数据库，需要在app（app01）下的models文件里面，他有自己的一套单独的操作，不需要咱们写sql语句，参考以下代码：
+			#必须这么写，固定写法
+			class Post(models.Model):
+			    name = models.CharField(max_length=100)
+			    password = models.CharField(max_length=100)
+			    age = models.IntegerField()
+			
+			"""
+			以上效果类比
+			create table app01_Post(取决于app的名称和这个类名的小写，合起来就是)(
+			    id bigint auto_increment,(这个是自动生成)
+			    name varchar(100)
+			    password varchar(100)
+			    age int
+			    )
+			"""
+		- 然后要执行他就需要在PyCharm的控制台里面别运行以下指令，注意前后顺序
+			- python manage.py makemigrations
+			- python manage.py migrate
+			- 然后这张表格就被创建出来了，同时setting里面所有的被注册app都会被创建一张表格出来
+		- 每当需要创建一张表的时候就在models里面写一个类（class），不想要这张表就可以直接注释掉这个class。再运行上面的指令就可以，
+		同样的，要删掉表里的某个字段也是，直接注释创建那个字段的代码就可以，但是新增的话就要注意，因为表中可能已经存在数据，所以要添加字段就必须群确认默认值
+		- 对于需要根据页面上返回的数据然后查找数据库的数据并返回的操作，我们流程是：（项目：my_staff）
+			def depart_edit(request):
+			    """
+			    这玩意的流程是这样的，
+			    首先在“编辑”选项的herf中将连接设置为 /depart/edit/?nid={{ department.id }}
+			    重点是？nid=
+			    在你点击编辑这个按钮以后 Django会向这个views函数视图发送一个get请求，
+			    然后通过request.GET.get()就可以得到nid的值
+			    再通过nid找到对应的数据库数据，记得直接找是一个queryset数据，所以要加个.first()。
+			    然后将数据返回给html界面，这样就可以通过edit.title 的形式来找到数据
+			    """
+			    nid = request.GET.get('nid')
+			    edit = models.Department.objects.filter(id=nid).first()
+			    print(edit.title)
+			    return render(request, 'depart_edit.html', {'edit': edit})
+			- 
+		
+		
+	• 项目的具体开发流程（员工管理）
+		- 配置表结构，详细配置内容查看文件，-models创建表结构 -settings修改数据库链接。
+		- 设置静态文件，和模版文件
+		- 在路径文件中导入app01.views；创建网页路径。
+		- 创建HTML文件
+	• 模板继承
+		 {% block content %}
+		{#      这个是模板继承，在另一个HTML文件里面写入{% extends 'layout.html' %}就可以不用写这个模板界面的所有内容了，#}
+		{#        只需要在界面上写入{% block content（模板上写的名称） %} 要编写的HTML内容 {% endblock %}即可#}
+		 {% endblock %}
+	• Django ForeignKey 核心
+		- 假设我们有两张表，部门和员工表。部门表叫department，只有1和2两个部门ID且唯一和一个title的字段记录部门名称，员工表包含一个所属部门的字段，如果我使用foreignkey创建了这个所属部门字段，并指向department的id字段（depart = models.ForeignKey(to='Department',to_field='id',on_delete=models.CASCADE)）那么ORM就会生成一个depart_id的字段而不是depart字段，此时当我们在员工表中通过部门ID想获取部门名称时就可以直接使用depart.title的形式而不是depart_id,就可以在员工表中获取部门名称，用depart_id只能获取 本表的数字而非部门表的名称。如下
+			queryset = models.UserInfo.objects.all()
+			for user in queryset:
+			    title = user.depart.title
+			    print(title)
+	• 输入判定：长度以及唯一性
+		def clean_mobile(self):
+		    mobile = self.cleaned_data['mobile']
+		    exists = models.PrettyNumber.objects.filter(mobile=mobile).exists()# 判断数据（电话号码）是否唯一，赋予的结果是一个布尔类型的值
+		    if len(mobile) != 11:
+		        raise ValidationError('格式错误')
+		    elif exists:
+		        raise ValidationError('号码已经存在')
+		    return mobile
+		- 对于限定的条件，限制长度输入规则等等都需要写钩子函数（如上），写在class里面才可以，直接用在modelform生成的输入框里面。
